@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vite + React + TS</title>
+</head>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+<body style="margin: 0;position: relative;">
+  <div id="mapContainer" style=" height: 100vh;width: 100vw;"></div>
+  <div
+    style="position: absolute;display: flex; flex-direction: column;align-items: flex-end ; top: 10px; right: 10px;z-index: 400;">
+    <button id="centerToSelf" style="margin-bottom: 10px;display: inline-block;">飛回現址</button>
+    <button id="reserveCar" style="margin-bottom: 10px;display: inline-block;">確認預約</button>
+    <button id="cancelReserveCar" style="margin-bottom: 10px;display: inline-block;">取消預約</button>
+    <button id="pickCar" style="margin-bottom: 10px;display: inline-block;">確認取車</button>
+    <button id="returnCar" style="margin-bottom: 10px;display: inline-block;">確認還車</button>
+    <div id="toast" style="margin-bottom: 10px;padding: 10px;display: inline-block;background-color: white; "></div>
+    <div id="loading" style="margin-bottom: 10px;padding: 10px;display: inline-block;background-color: white; ">loading...</div>
+
+  </div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
