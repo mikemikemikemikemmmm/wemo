@@ -12,8 +12,8 @@ export class DomManager {
     constructor(
         private resetMarkerStyle: (carMarkerId: number) => void,
         private setViewToNowLatlng: () => void,
-        private setMarkerWhenPickcar: (carid: number) => void,
-        private setMarkerWhenReturncar: (carid: number) => void,
+        private setMarkerStyleWhenPickcar: (carid: number) => void,
+        private setMarkerStyleWhenReturncar: (carid: number) => void,
     ) {
         this.btnDomGroup = {
             reserveCar: document.getElementById(BUTTON_ID_MAP.reserveCar) as HTMLElement,
@@ -26,9 +26,6 @@ export class DomManager {
 
         this.initButtons()
         this.hiddenToast(this)
-    }
-    setToastTextForDriving() {
-
     }
     setToastText(text: string) {
         const self = this
@@ -101,9 +98,6 @@ export class DomManager {
         }
         globalStore.dispatch(setUserStatus('reservedCar'))
         this.setToastText('預約成功')
-        // this.displayButton('cancelReserveCar')
-        // this.displayButton('pickCar')
-        // this.hiddenButton('reserveCar')
     }
     async handleClickCancelReserveCar() {
         if (this.getUserStatus() !== 'reservedCar') {
@@ -150,9 +144,11 @@ export class DomManager {
             return
         }
         globalStore.dispatch(setUserStatus('driving'))
-        this.setMarkerWhenPickcar(targetCarMarkerData.id)
+        this.setMarkerStyleWhenPickcar(targetCarMarkerData.id)
         this.setToastText('取車成功')
-        this.setToastTextForDriving()
+        this.handleAddIntervalWhenPickupCar()
+    }
+    handleAddIntervalWhenPickupCar() {
         const self = this
         this.drivingSetIntervalId = setInterval(async () => {
             self.callApiToRecordDriving()
@@ -164,7 +160,8 @@ export class DomManager {
             errorHandler("callApiToRecordDriving")
             return
         }
-        const result = await Api.get(`Car/update/${nowLatlng[0]}/${nowLatlng[1]}`)
+        const result = await Api.get(`Car/update/${nowLatlng[0]}/${nowLatlng[1]}`, false)
+        this.setToastText('紀錄座標中')
         if (!result.isSuccess) {
             clearInterval(this.drivingSetIntervalId)
             errorHandler("callApiToRecordDriving, fail")
@@ -172,7 +169,7 @@ export class DomManager {
         }
         globalStore.dispatch(setTargetCarMarkerData({
             ...targetCarMarkerData,
-            latlng:nowLatlng
+            latlng: nowLatlng
         }))
     }
     async handleClickReturnCar() {
@@ -183,11 +180,16 @@ export class DomManager {
         if (!targetCarMarkerData) {
             return
         }
-        const { isLoading } = globalStore.getState()
+        const { isLoading, nowLatlng } = globalStore.getState()
         if (isLoading) {
             return
         }
-        const result = await Api.get(`Car/return/${targetCarMarkerData.id}`)
+        const postData = {
+            carId: targetCarMarkerData.id,
+            lat: nowLatlng[0],
+            lng: nowLatlng[1]
+        }
+        const result = await Api.post(`Car/return`, postData)
         if (!result.isSuccess) {
             this.setToastText('還車失敗')
             return
@@ -195,7 +197,7 @@ export class DomManager {
         clearInterval(this.drivingSetIntervalId)
         this.drivingSetIntervalId = undefined
         this.setToastText('還車成功')
-        this.setMarkerWhenReturncar(targetCarMarkerData.id)
+        this.setMarkerStyleWhenReturncar(targetCarMarkerData.id)
         this.resetMarkerStyle(targetCarMarkerData.id)
         globalStore.dispatch(setUserStatus('noLooking'))
     }

@@ -3,7 +3,7 @@ import { MAP_CONTAINER_START, MOVE_SPEED } from './const';
 import { errorHandler } from './errorHandler';
 import Api from './api';
 import { convertBoundsToLatlngs, convertBoundsToPolygon, getDiffPolygonGeoJson, PolygonGeojson } from './helpers';
-import { CarMarkerManager } from './carMarkerManager';
+import { CarMarker, CarMarkerManager, clickedMarkerStyle } from './carMarkerManager';
 import { globalStore, setNowLatlngForStore, setTargetCarMarkerData, setUserStatus } from './store';
 import { DomManager } from './domManager';
 import { BeforeStatus, CarData } from './type';
@@ -27,8 +27,8 @@ export class MapManager {
         this.domManager = new DomManager(
             this.carMarkerManager.resetMarkerStyle.bind(this.carMarkerManager),
             this.setViewToNowLatlng.bind(this),
-            this.carMarkerManager.setMarkerWhenPickcar.bind(this.carMarkerManager),
-            this.carMarkerManager.setMarkerWhenReturncar.bind(this.carMarkerManager),
+            this.carMarkerManager.setMarkerStyleWhenPickcar.bind(this.carMarkerManager),
+            this.carMarkerManager.setMarkerStyleWhenReturncar.bind(this.carMarkerManager),
         )
         L.tileLayer(
             'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -36,7 +36,7 @@ export class MapManager {
         }).addTo(this.map);
         const { lat, lng } = this.map.getCenter()
         this.nowLatlng = [lat, lng]
-        this.nowPositionCircle = L.circle(this.nowLatlng, { radius: 50, color: 'black',fillOpacity:1,fillColor:'black' }).addTo(this.map)
+        this.nowPositionCircle = L.circle(this.nowLatlng, { radius: 50, color: 'black', fillOpacity: 1, fillColor: 'black' }).addTo(this.map)
         this.lastGetNewCarsPolygon =
             convertBoundsToPolygon(this.map.getBounds())
                 .setStyle({ opacity: 0 })
@@ -44,22 +44,36 @@ export class MapManager {
         this.initListenKeyboard()
         this.initListenMapEvent()
         this.handleGetNewCars()
-        // this.handleBeforeStatus()
+        this.handleBeforeStatus()
     }
-    async handleBeforeStatus() {
+    async handleBeforeStatus() {//TODO
         const result = await Api.get<BeforeStatus>('Car/before')
         if (!result.isSuccess) {
             return
         }
-        const { userStatus, targetCarId } = result.data
-        const targetCarmarker = this.carMarkerManager.findMarkerById(targetCarId)
-        if (!targetCarmarker) {
+        const { userStatus, targetCar } = result.data
+        if (userStatus == 'noLooking' || userStatus === 'lookingCar') {
             return
         }
-        if (userStatus === 'driving' || userStatus === 'reservedCar') {
-            const data = this.carMarkerManager.createMarkerData(targetCarmarker)
-            globalStore.dispatch(setTargetCarMarkerData(data))
-            globalStore.dispatch(setUserStatus(userStatus))
+        if (!targetCar) {
+            errorHandler('')
+            return
+        }
+        this.carMarkerManager.handleNewCarsMarker([targetCar])
+        const targetCarmarker = this.carMarkerManager.findMarkerById(targetCar.id)
+        if(!targetCarmarker){
+            errorHandler('')
+            return
+        }
+        const carmarkerData = this.carMarkerManager.createMarkerData(targetCarmarker)
+        globalStore.dispatch(setTargetCarMarkerData(carmarkerData))
+        globalStore.dispatch(setUserStatus(userStatus))
+        if (userStatus === 'driving') {
+            this.setNowLatlng([targetCar.latitude, targetCar.longitude])
+            this.carMarkerManager.setMarkerStyleWhenPickcar(targetCar.id)
+            this.domManager.handleAddIntervalWhenPickupCar()
+        }else if(userStatus === 'reservedCar'){
+            targetCarmarker.setStyle(clickedMarkerStyle)
         }
     }
     setViewToNowLatlng() {

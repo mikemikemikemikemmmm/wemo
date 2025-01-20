@@ -12,6 +12,6 @@ export interface CarMarkerData {
     latlng: L.LatLngTuple
 }
 export interface BeforeStatus {
-    targetCarId: number
-    userStatus: UserStatus
+    targetCar?: CarData
+    userStatus: UserStatus,
 }

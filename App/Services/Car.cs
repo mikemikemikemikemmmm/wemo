@@ -8,7 +8,7 @@ using NetTopologySuite.Geometries;
 
 namespace App.Services
 {
-    public class CarServices(DataBaseContext context, AuthServices authService)
+    public class CarServices(DataBaseContext context, IMapper mapper, AuthServices authService)
     {
         public async Task<List<CarEntity>> GetAroundCarsByPolygon(Polygon polygon)
         {
@@ -154,7 +154,7 @@ namespace App.Services
                 }
             }
         }
-        public async Task<string> ReturnCar(int carId)
+        public async Task<string> ReturnCar(int carId, double lat, double lon)
         {
             var user = await authService.GetUserByJwt();
             using (var transaction = await context.Database.BeginTransactionAsync())  // 開始事務
@@ -173,6 +173,8 @@ namespace App.Services
                         throw new Exception("找不到騎乘資料");
                     }
                     targetCar.CarStatus = CarStatus.CanBeReserved;
+                    targetCar.Location.Y = lat;
+                    targetCar.Location.X = lon;
                     context.Drivings.Remove(targetDriving);
                     var totalDurationInSeconds =
                      (int)(DateTimeOffset.UtcNow - targetDriving.CreatedAt).TotalSeconds;
@@ -226,12 +228,15 @@ namespace App.Services
                     var lastPoint = targetCar.Location;
                     var point = GeoHelpers.CreatePoint(lon, lat);
                     var distance = (float)point.Distance(lastPoint);
-                    var distanceInMeters = (int)(distance*10000);
-                    targetCar.Location = point;
+                    var distanceInMeters = (int)(distance * 10000);
+                    targetCar.Location.Y = lat;
+                    targetCar.Location.X = lon;
                     targetDriving.CurrentSumMeters += distanceInMeters;
                     Console.WriteLine("-----------distance------------");
                     Console.WriteLine(distance);
                     Console.WriteLine(distanceInMeters);
+                    await context.SaveChangesAsync();
+                    await transaction.CommitAsync();
                     return Const.SUCCESS;
                 }
                 catch (Exception ex)
@@ -245,7 +250,7 @@ namespace App.Services
         public class GetBeforeStatusResult
         {
             public required string userStatus { get; set; }
-            public required int targetCarId { get; set; }
+            public CarReadDto? targetCar { get; set; }
         }
         public async Task<GetBeforeStatusResult> GetBeforeStatus()
         {
@@ -253,23 +258,20 @@ namespace App.Services
             var hasReserved = await context.Reservations.Where(r => r.UserId == user.Id).FirstOrDefaultAsync();
             if (hasReserved != null)
             {
+                var reservedCar = await GetCar(hasReserved.CarId, null);
                 var hasExpired = hasReserved.ExpiredAt < DateTimeOffset.UtcNow;
-                Console.WriteLine(hasReserved.ExpiredAt);
-                Console.WriteLine(DateTimeOffset.UtcNow);
-                Console.WriteLine(hasExpired);
                 if (hasExpired)
                 {
-                    var targetCar = await GetCar(hasReserved.CarId, null);
-                    if (targetCar != null)
+                    if (reservedCar != null)
                     {
-                        targetCar.CarStatus = CarStatus.CanBeReserved;
+                        reservedCar.CarStatus = CarStatus.CanBeReserved;
                     }
                     context.Reservations.Remove(hasReserved);
                     await context.SaveChangesAsync();
                     return new GetBeforeStatusResult
                     {
                         userStatus = "noLooking",
-                        targetCarId = 0
+                        targetCar = null,
                     };
                 }
                 else
@@ -277,24 +279,29 @@ namespace App.Services
                     return new GetBeforeStatusResult
                     {
                         userStatus = "reservedCar",
-                        targetCarId = hasReserved.CarId
+                        targetCar = mapper.Map<CarReadDto>(reservedCar),
                     };
 
                 }
             }
             var hasDriving = await context.Drivings.Where(d => d.UserId == user.Id).FirstOrDefaultAsync();
-            if (hasDriving != null)
+            if (hasDriving == null)
             {
                 return new GetBeforeStatusResult
                 {
-                    userStatus = "driving",
-                    targetCarId = hasDriving.CarId
+                    userStatus = "noLooking",
+                    targetCar = null,
                 };
+            }
+            var drivingCar = await GetCar(hasDriving.CarId, null);
+            if (drivingCar == null)
+            {
+                throw new Exception("無法找到該車");
             }
             return new GetBeforeStatusResult
             {
-                userStatus = "noLooking",
-                targetCarId = 0
+                userStatus = "driving",
+                targetCar = mapper.Map<CarReadDto>(drivingCar),
             };
         }
     }

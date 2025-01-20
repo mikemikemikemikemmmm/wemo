@@ -58,11 +58,18 @@ namespace App.Controllers.v1
             }
             return BadRequest(result);
         }
-        [HttpGet("return/{carId}")]
-        public async Task<ActionResult>
-        ReturnCar(int carId)
+        public class ReturnPostData
         {
-            var result = await carServices.ReturnCar(carId);
+            public required int carId { get; set; }
+            public required double lat { get; set; }
+            public required double lng { get; set; }
+
+        }
+        [HttpPost("return")]
+        public async Task<ActionResult>
+        ReturnCar([FromBody] ReturnPostData returnPostData)
+        {
+            var result = await carServices.ReturnCar(returnPostData.carId, returnPostData.lat, returnPostData.lng);
             if (result == Const.SUCCESS)
             {
                 return Ok();

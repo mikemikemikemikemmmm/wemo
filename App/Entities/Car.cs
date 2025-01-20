@@ -29,8 +29,8 @@ namespace App.Entities
         public required string Name { set; get; }
         [Required]
         public required CarStatus CarStatus { set; get; }
-        public required float Longitude { set; get; }
-        public required float Latitude { set; get; }
+        public required double Longitude { set; get; }
+        public required double Latitude { set; get; }
     }
     public class CarUpdateDto : CarCreateDto
     {

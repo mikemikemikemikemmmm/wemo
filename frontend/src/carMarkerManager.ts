@@ -4,12 +4,11 @@ import { MAX_CARMARKERS_DATA_LENGTH } from './const';
 import { errorHandler } from "./errorHandler";
 import { CarData, CarMarkerData } from "./type";
 const originMarkerStyle = { radius: 4, color: 'blue', fillColor: 'blue', fillOpacity: 1 }
-const targetMarkerStyle = { color: 'red', radius: 7, fillColor: 'red', fillOpacity: 1 }
+export const clickedMarkerStyle = { color: 'red', radius: 7, fillColor: 'red', fillOpacity: 1 }
 export class CarMarker extends L.CircleMarker {
     _id: number
     constructor(
         _id: number,
-        _name: string,
         latlng: L.LatLngTuple,
         options?: L.MarkerOptions) {
         super(latlng, originMarkerStyle)
@@ -35,7 +34,7 @@ export class CarMarkerManager {
             if (this.list.some(cm => cm._id === car.id)) {
                 continue
             }
-            const newMarker = new CarMarker(car.id, car.name, [car.latitude, car.longitude])
+            const newMarker = new CarMarker(car.id, [car.latitude, car.longitude])
             const bindFn = self.handleClickCarMarker.bind(self)
             newMarker.addEventListener("click", e => bindFn(e))
             newMarker.addTo(this.map)
@@ -55,7 +54,7 @@ export class CarMarkerManager {
         const targetCarMarkerData = state.targetCarMarkerData
         const isSelf = targetCarMarkerData?.id === self._id
         if (!targetCarMarkerData) {
-            self.setStyle(targetMarkerStyle)
+            self.setStyle(clickedMarkerStyle)
             const data = this.createMarkerData(self)
             globalStore.dispatch(setTargetCarMarkerData(data))
             globalStore.dispatch(setUserStatus('lookingCar'))
@@ -67,7 +66,7 @@ export class CarMarkerManager {
             } else {
                 errorHandler("")//TODO
             }
-            self.setStyle(targetMarkerStyle)
+            self.setStyle(clickedMarkerStyle)
             const data = this.createMarkerData(self)
             globalStore.dispatch(setTargetCarMarkerData(data))
             globalStore.dispatch(setUserStatus('lookingCar'))
@@ -128,23 +127,31 @@ export class CarMarkerManager {
         }
         this.list = newList
     }
-    setMarkerWhenPickcar(carId: number) {
+    setMarkerStyleWhenPickcar(carId: number) {
         const target = this.findMarkerById(carId)
         if (!target) {
             errorHandler("")
             return
         }
-        target.setStyle({ opacity: 0 ,fillOpacity:0})
+        target.setStyle({ opacity: 0, fillOpacity: 0 })
     }
 
-    setMarkerWhenReturncar(carId: number) {
+    setMarkerStyleWhenReturncar(carId: number) {
         const target = this.findMarkerById(carId)
         if (!target) {
             errorHandler("")
             return
         }
         target.setLatLng(globalStore.getState().nowLatlng)
-        target.setStyle({ opacity: 100,fillOpacity:1 })
-
+        target.setStyle({ opacity: 100, fillOpacity: 1 })
     }
+    // setMarkerStyleWhenClicked(carId: number) {
+    //     const target = this.findMarkerById(carId)
+    //     if (!target) {
+    //         errorHandler("")
+    //         return
+    //     }
+    //     target.setStyle(clickedMarkerStyle)
+
+    // }
 }
