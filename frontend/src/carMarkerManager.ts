@@ -70,7 +70,6 @@ export class CarMarkerManager {
             const data = this.createMarkerData(self)
             globalStore.dispatch(setTargetCarMarkerData(data))
             globalStore.dispatch(setUserStatus('lookingCar'))
-            // this.showButtonByDomManager('reserveCar')
         }
         else if (isSelf) {
             if (self) {
@@ -81,6 +80,7 @@ export class CarMarkerManager {
             globalStore.dispatch(setUserStatus('noLooking'))
         }
     }
+    //redux only save json, can't save Carmarker
     createMarkerData(marker: CarMarker): CarMarkerData {
         const latlng = marker.getLatLng()
         return {
@@ -122,7 +122,7 @@ export class CarMarkerManager {
             if (isCurrentViewContainMarker) {
                 newList.push(target)
             } else {
-                this.removeMarker(this.list[i])
+                this.removeMarker(target)
             }
         }
         this.list = newList
@@ -145,13 +145,4 @@ export class CarMarkerManager {
         target.setLatLng(globalStore.getState().nowLatlng)
         target.setStyle({ opacity: 100, fillOpacity: 1 })
     }
-    // setMarkerStyleWhenClicked(carId: number) {
-    //     const target = this.findMarkerById(carId)
-    //     if (!target) {
-    //         errorHandler("")
-    //         return
-    //     }
-    //     target.setStyle(clickedMarkerStyle)
-
-    // }
 }

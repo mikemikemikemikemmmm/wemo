@@ -189,6 +189,7 @@ namespace App.Services
                         TotalDistanceMeter = targetDriving.CurrentSumMeters//TODO
 
                     };
+                    await context.AddAsync(newOrder);
                     await context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return Const.SUCCESS;
@@ -228,13 +229,10 @@ namespace App.Services
                     var lastPoint = targetCar.Location;
                     var point = GeoHelpers.CreatePoint(lon, lat);
                     var distance = (float)point.Distance(lastPoint);
-                    var distanceInMeters = (int)(distance * 10000);
+                    var distanceInMeters = (int)(distance * 100000);
+                    targetDriving.CurrentSumMeters += distanceInMeters;
                     targetCar.Location.Y = lat;
                     targetCar.Location.X = lon;
-                    targetDriving.CurrentSumMeters += distanceInMeters;
-                    Console.WriteLine("-----------distance------------");
-                    Console.WriteLine(distance);
-                    Console.WriteLine(distanceInMeters);
                     await context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return Const.SUCCESS;
