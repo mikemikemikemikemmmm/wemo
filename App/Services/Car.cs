@@ -132,7 +132,7 @@ namespace App.Services
                         targetCar.CarStatus = CarStatus.CanBeReserved;
                         await context.SaveChangesAsync();
                         await transaction.CommitAsync();
-                        throw new Exception("預約已過期");
+                        return "hasExpired";
                     }
                     targetCar.CarStatus = CarStatus.Driving;
                     var newDriving = new DrivingsEntity
@@ -150,10 +150,6 @@ namespace App.Services
                 }
                 catch (Exception ex)
                 {
-                    if (ex.Message == "預約已過期")
-                    {
-                        return ex.Message;
-                    }
                     await transaction.RollbackAsync();  // 如果發生錯誤，回滾事務
                     return ex.Message;
                 }

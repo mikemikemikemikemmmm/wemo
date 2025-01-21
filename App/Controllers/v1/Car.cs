@@ -52,9 +52,9 @@ namespace App.Controllers.v1
         PickupCar(int carId)
         {
             var result = await carServices.PickupCar(carId);
-            if (result == Const.SUCCESS)
+            if (result == Const.SUCCESS| result == "hasExpired")
             {
-                return Ok();
+                return Ok(result);
             }
             return BadRequest(result);
         }
