@@ -94,11 +94,13 @@ export class DomManager {
         }
         const result = await Api.get(`Car/pickup/${targetCarMarkerData.id}`)
         if (!result.isSuccess) {
-            if (result.errorMessage === '預約已過期') {
-                this.resetMarkerStyle(targetCarMarkerData.id)
-                globalStore.dispatch(setUserStatus('noLooking'))
-                globalStore.dispatch(setTargetCarMarkerData(undefined))
-            }
+            return
+        }
+        if (result.data === 'hasExpired') {
+            this.resetMarkerStyle(targetCarMarkerData.id)
+            this.setGlobalToastText('預約已過期')
+            globalStore.dispatch(setUserStatus('noLooking'))
+            globalStore.dispatch(setTargetCarMarkerData(undefined))
             return
         }
         globalStore.dispatch(setUserStatus('driving'))
