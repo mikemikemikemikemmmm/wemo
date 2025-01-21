@@ -4,7 +4,7 @@ import { errorHandler } from './errorHandler';
 import Api from './api';
 import { convertBoundsToLatlngs, convertBoundsToPolygon, getDiffPolygonGeoJson, PolygonGeojson } from './helpers';
 import { CarMarker, CarMarkerManager, clickedMarkerStyle } from './carMarkerManager';
-import { globalStore, setNowLatlngForStore, setTargetCarMarkerData, setUserStatus } from './store';
+import { globalStore, setNowLatlngForStore, setTargetCarMarkerJson, setUserStatus } from './store';
 import { DomManager } from './domManager';
 import { BeforeStatus, CarData } from './type';
 export class MapManager {
@@ -59,8 +59,8 @@ export class MapManager {
             errorHandler('')
             return
         }
-        const carmarkerData = this.carMarkerManager.createMarkerDataByCar(targetCar)
-        globalStore.dispatch(setTargetCarMarkerData(carmarkerData))
+        const carmarkerJson = this.carMarkerManager.createMarkerJson(targetCar.id, targetCar.latitude, targetCar.longitude)
+        globalStore.dispatch(setTargetCarMarkerJson(carmarkerJson))
         globalStore.dispatch(setUserStatus(userStatus))
         this.carMarkerManager.handleNewCarsMarker([targetCar])
         const targetCarmarker = this.carMarkerManager.findMarkerById(targetCar.id)

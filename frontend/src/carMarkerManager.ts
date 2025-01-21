@@ -1,8 +1,8 @@
 import * as L from "leaflet"
-import { globalStore, setTargetCarMarkerData, setUserStatus } from './store'
+import { globalStore, setTargetCarMarkerJson, setUserStatus } from './store'
 import { MAX_CARMARKERS_DATA_LENGTH } from './const';
 import { errorHandler } from "./errorHandler";
-import { CarData, CarMarkerData } from "./type";
+import { CarData, CarMarkerJson } from "./type";
 const originMarkerStyle = { radius: 4, color: 'blue', fillColor: 'blue', fillOpacity: 1 }
 export const clickedMarkerStyle = { color: 'red', radius: 7, fillColor: 'red', fillOpacity: 1 }
 export class CarMarker extends L.CircleMarker {
@@ -26,17 +26,21 @@ export class CarMarkerManager {
         }
         target.setStyle(originMarkerStyle)
     }
+    //not markerJson
+    createMarker(id: number, lat: number, lon: number) {
+        const newMarker = new CarMarker(id, [lat, lon])
+        const bindFn = this.handleClickCarMarker.bind(this)
+        newMarker.addEventListener("click", e => bindFn(e))
+        newMarker.addTo(this.map)
+        return newMarker
+    }
     handleNewCarsMarker(newCars: CarData[]) {
-        const self = this
         for (let index = 0; index < newCars.length; index++) {
             const car = newCars[index];
             if (this.list.some(cm => cm._id === car.id)) {
                 continue
             }
-            const newMarker = new CarMarker(car.id, [car.latitude, car.longitude])
-            const bindFn = self.handleClickCarMarker.bind(self)
-            newMarker.addEventListener("click", e => bindFn(e))
-            newMarker.addTo(this.map)
+            const newMarker = this.createMarker(car.id, car.latitude, car.longitude)
             this.list.push(newMarker)
         }
         if (this.list.length > MAX_CARMARKERS_DATA_LENGTH) {
@@ -45,28 +49,28 @@ export class CarMarkerManager {
     }
     handleClickCarMarker(e: L.LeafletMouseEvent) {
         const state = globalStore.getState()
-        const {userStatus,targetCarMarkerData} = state
+        const { userStatus, targetCarMarkerJson } = state
         if (userStatus === 'driving' || userStatus === 'reservedCar') {
             return
         }
-        const targetMarker = e.target
-        const isSelf = targetCarMarkerData?.id === targetMarker._id
-        if (!targetCarMarkerData) {
+        const targetMarker = e.target as CarMarker
+        const { lat, lng } = targetMarker.getLatLng()
+        const markerJson = this.createMarkerJson(targetMarker._id, lat, lng)
+        const isSelf = targetCarMarkerJson?.id === targetMarker._id
+        if (!targetCarMarkerJson) {
             targetMarker.setStyle(clickedMarkerStyle)
-            const data = this.createMarkerDataByMarker(targetMarker)
-            globalStore.dispatch(setTargetCarMarkerData(data))
+            globalStore.dispatch(setTargetCarMarkerJson(markerJson))
             globalStore.dispatch(setUserStatus('lookingCar'))
         }
-        else if (targetCarMarkerData && !isSelf) {
-            const lastMarker = this.findMarkerById(targetCarMarkerData.id)
+        else if (targetCarMarkerJson && !isSelf) {
+            const lastMarker = this.findMarkerById(targetCarMarkerJson.id)
             if (lastMarker) {
                 lastMarker.setStyle(originMarkerStyle)
             } else {
                 errorHandler("")//TODO
             }
             targetMarker.setStyle(clickedMarkerStyle)
-            const data = this.createMarkerDataByMarker(targetMarker)
-            globalStore.dispatch(setTargetCarMarkerData(data))
+            globalStore.dispatch(setTargetCarMarkerJson(markerJson))
             globalStore.dispatch(setUserStatus('lookingCar'))
         }
         else if (isSelf) {
@@ -79,18 +83,10 @@ export class CarMarkerManager {
         }
     }
     //redux only save json, can't save Carmarker
-    createMarkerDataByMarker(marker: CarMarker): CarMarkerData {
-        const latlng = marker.getLatLng()
+    createMarkerJson(id: number, lat: number, lng: number): CarMarkerJson {
         return {
-            id: marker._id,
-            latlng: [latlng.lat, latlng.lng]
-        }
-    }
-    //redux only save json, can't save Carmarker
-    createMarkerDataByCar(car: CarData): CarMarkerData {
-        return {
-            id: car.id,
-            latlng: [car.latitude, car.longitude]
+            id,
+            latlng: [lat, lng]
         }
     }
     findMarkerById(id: number) {
@@ -108,7 +104,7 @@ export class CarMarkerManager {
     }
     trimList() {
         const currentBounds = this.map.getBounds()
-        const targetCarMarkerData = globalStore.getState().targetCarMarkerData
+        const {targetCarMarkerJson} = globalStore.getState()
         let hasPushTargetMarkerIndex = false
         const newList = [] as typeof this.list
         for (let i = 0; i < this.list.length; i++) {
@@ -116,8 +112,8 @@ export class CarMarkerManager {
             const target = this.list[i]
             if (
                 !hasPushTargetMarkerIndex &&
-                targetCarMarkerData &&
-                targetCarMarkerData.id === target._id
+                targetCarMarkerJson &&
+                targetCarMarkerJson.id === target._id
             ) {
                 hasPushTargetMarkerIndex = true
                 newList.push(target)

@@ -1,6 +1,6 @@
 import { createSlice, configureStore, PayloadAction } from '@reduxjs/toolkit'
 import { LOADING_ID, TAIWAN_TRAIN_STATION_COOR, TOAST_ID } from './const'
-import { CarMarkerData, UserStatus } from './type'
+import { CarMarkerJson, UserStatus } from './type'
 import { handleBtnGroupDisplay } from './main'
 const loadingDom = document.getElementById(LOADING_ID) as HTMLElement
 const toastDom = document.getElementById(TOAST_ID) as HTMLElement
@@ -11,7 +11,7 @@ const mapSlice = createSlice({
     userStatus: "noLooking" as UserStatus,
 
     //redux only save json, can't save Carmarker
-    targetCarMarkerData: undefined as CarMarkerData | undefined,
+    targetCarMarkerJson: undefined as CarMarkerJson | undefined,
     nowLatlng: TAIWAN_TRAIN_STATION_COOR as L.LatLngTuple,
     isLoading: false
   },
@@ -40,11 +40,11 @@ const mapSlice = createSlice({
       state.userStatus = action.payload
       handleBtnGroupDisplay(action.payload)
       if (action.payload === 'noLooking') {
-        state.targetCarMarkerData = undefined
+        state.targetCarMarkerJson = undefined
       }
     },
-    setTargetCarMarkerData: (state, action: PayloadAction<CarMarkerData | undefined>) => {
-      state.targetCarMarkerData = action.payload
+    setTargetCarMarkerJson: (state, action: PayloadAction<CarMarkerJson | undefined>) => {
+      state.targetCarMarkerJson = action.payload
     },
     setNowLatlngForStore: (state, action: PayloadAction<L.LatLngTuple>) => {
       state.nowLatlng = action.payload
@@ -52,7 +52,7 @@ const mapSlice = createSlice({
   }
 })
 
-export const { setIsLoading,setToastText, setNowLatlngForStore, setTargetCarMarkerData, setUserStatus } = mapSlice.actions
+export const { setIsLoading,setToastText, setNowLatlngForStore, setTargetCarMarkerJson, setUserStatus } = mapSlice.actions
 
 export const globalStore = configureStore({
   reducer: mapSlice.reducer

@@ -1,7 +1,7 @@
 import Api from "./api";
 import { BUTTON_ID_MAP, DISTANCE_ALLOW_PICKUP_METER, DISTANCE_ALLOW_RESERVE_METER, INTERVAL_SECOND_TO_CALL_API_WHEN_DRIVING, KeyOfButtonMap, TOAST_ID } from "./const";
 import { errorHandler } from "./errorHandler";
-import { globalStore, setTargetCarMarkerData, setToastText, setUserStatus } from "./store";
+import { globalStore, setTargetCarMarkerJson, setToastText, setUserStatus } from "./store";
 import * as L from 'leaflet'
 import { UserStatus } from "./type";
 export class DomManager {
@@ -55,15 +55,15 @@ export class DomManager {
         return distance < allowDistance
     }
     async handleClickReserveCar() {
-        const { targetCarMarkerData, isLoading, userStatus, nowLatlng } = globalStore.getState()
-        if (userStatus !== 'lookingCar' || !targetCarMarkerData || isLoading) {
+        const { targetCarMarkerJson, isLoading, userStatus, nowLatlng } = globalStore.getState()
+        if (userStatus !== 'lookingCar' || !targetCarMarkerJson || isLoading) {
             return
         }
-        if (!this.isAllowByDistance(nowLatlng, targetCarMarkerData.latlng, 'reserve')) {
+        if (!this.isAllowByDistance(nowLatlng, targetCarMarkerJson.latlng, 'reserve')) {
             this.setGlobalToastText("距離太遠無法預約")
             return
         }
-        const result = await Api.get(`Car/reserve/${targetCarMarkerData.id}`)
+        const result = await Api.get(`Car/reserve/${targetCarMarkerJson.id}`)
         if (!result.isSuccess) {
             return
         }
@@ -71,40 +71,40 @@ export class DomManager {
         this.setGlobalToastText('預約成功')
     }
     async handleClickCancelReserveCar() {
-        const { targetCarMarkerData, isLoading, userStatus } = globalStore.getState()
-        if (userStatus !== 'reservedCar' || !targetCarMarkerData || isLoading) {
+        const { targetCarMarkerJson, isLoading, userStatus } = globalStore.getState()
+        if (userStatus !== 'reservedCar' || !targetCarMarkerJson || isLoading) {
             return
         }
-        const result = await Api.get(`Car/cancel/${targetCarMarkerData.id}`)
+        const result = await Api.get(`Car/cancel/${targetCarMarkerJson.id}`)
         if (!result.isSuccess) {
             return
         }
         this.setGlobalToastText('取消預約成功')
-        this.resetMarkerStyle(targetCarMarkerData.id)
+        this.resetMarkerStyle(targetCarMarkerJson.id)
         globalStore.dispatch(setUserStatus('noLooking'))
     }
     async handleClickPickupCar() {
-        const { targetCarMarkerData, isLoading, userStatus, nowLatlng } = globalStore.getState()
-        if (userStatus !== 'reservedCar' || !targetCarMarkerData || isLoading) {
+        const { targetCarMarkerJson, isLoading, userStatus, nowLatlng } = globalStore.getState()
+        if (userStatus !== 'reservedCar' || !targetCarMarkerJson || isLoading) {
             return
         }
-        if (!this.isAllowByDistance(nowLatlng, targetCarMarkerData.latlng, 'pickup')) {
+        if (!this.isAllowByDistance(nowLatlng, targetCarMarkerJson.latlng, 'pickup')) {
             this.setGlobalToastText("距離太遠無法取車")
             return
         }
-        const result = await Api.get(`Car/pickup/${targetCarMarkerData.id}`)
+        const result = await Api.get(`Car/pickup/${targetCarMarkerJson.id}`)
         if (!result.isSuccess) {
             return
         }
         if (result.data === 'hasExpired') {
-            this.resetMarkerStyle(targetCarMarkerData.id)
+            this.resetMarkerStyle(targetCarMarkerJson.id)
             this.setGlobalToastText('預約已過期')
             globalStore.dispatch(setUserStatus('noLooking'))
-            globalStore.dispatch(setTargetCarMarkerData(undefined))
+            globalStore.dispatch(setTargetCarMarkerJson(undefined))
             return
         }
         globalStore.dispatch(setUserStatus('driving'))
-        this.setMarkerStyleWhenPickcar(targetCarMarkerData.id)
+        this.setMarkerStyleWhenPickcar(targetCarMarkerJson.id)
         this.setGlobalToastText('取車成功')
         this.handleAddIntervalWhenPickupCar()
     }
@@ -114,31 +114,38 @@ export class DomManager {
             self.callApiToRecordDriving()
         }, INTERVAL_SECOND_TO_CALL_API_WHEN_DRIVING);
     }
+    cleanRecordDrivingInterval() {
+        clearInterval(this.drivingSetIntervalId)
+        this.drivingSetIntervalId = undefined
+    }
     async callApiToRecordDriving() {
-        const { targetCarMarkerData, nowLatlng } = globalStore.getState()
-        if (!targetCarMarkerData) {
+        if (!this.drivingSetIntervalId) {
+            return
+        }
+        const { targetCarMarkerJson, nowLatlng } = globalStore.getState()
+        if (!targetCarMarkerJson) {
             errorHandler("callApiToRecordDriving")
             return
         }
         const result = await Api.get(`Car/update/${nowLatlng[0]}/${nowLatlng[1]}`, false)
         this.setGlobalToastText('紀錄座標中')
         if (!result.isSuccess) {
-            clearInterval(this.drivingSetIntervalId)
+            this.cleanRecordDrivingInterval()
             errorHandler("callApiToRecordDriving, fail")
             return
         }
-        globalStore.dispatch(setTargetCarMarkerData({
-            ...targetCarMarkerData,
+        globalStore.dispatch(setTargetCarMarkerJson({
+            id: targetCarMarkerJson.id,
             latlng: nowLatlng
         }))
     }
     async handleClickReturnCar() {
-        const { targetCarMarkerData, isLoading, nowLatlng, userStatus } = globalStore.getState()
-        if (userStatus !== 'driving' || !targetCarMarkerData || isLoading) {
+        const { targetCarMarkerJson, isLoading, nowLatlng, userStatus } = globalStore.getState()
+        if (userStatus !== 'driving' || !targetCarMarkerJson || isLoading) {
             return
         }
         const postData = {
-            carId: targetCarMarkerData.id,
+            carId: targetCarMarkerJson.id,
             lat: nowLatlng[0],
             lng: nowLatlng[1]
         }
@@ -146,11 +153,10 @@ export class DomManager {
         if (!result.isSuccess) {
             return
         }
-        clearInterval(this.drivingSetIntervalId)
-        this.drivingSetIntervalId = undefined
+        this.cleanRecordDrivingInterval()
         this.setGlobalToastText('還車成功')
-        this.setMarkerStyleWhenReturncar(targetCarMarkerData.id)
-        this.resetMarkerStyle(targetCarMarkerData.id)
+        this.setMarkerStyleWhenReturncar(targetCarMarkerJson.id)
+        this.resetMarkerStyle(targetCarMarkerJson.id)
         globalStore.dispatch(setUserStatus('noLooking'))
     }
     handleBtnGroupDisplay(nextUserStatus: UserStatus) {

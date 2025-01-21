@@ -7,7 +7,7 @@ export interface CarData {
 }
 
 export type UserStatus = "noLooking" | "lookingCar" | "reservedCar" | "driving"
-export interface CarMarkerData {
+export interface CarMarkerJson {
     id: number,
     latlng: L.LatLngTuple
 }
