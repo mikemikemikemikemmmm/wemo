@@ -186,8 +186,8 @@ namespace App.Services
                         CarId = targetCar.Id,
                         Car = targetCar,
                         TotalCost = 0, //TODO
-                        DurationInSeconds = totalDurationInSeconds,//TODO
-                        TotalDistanceMeter = targetDriving.CurrentSumMeters//TODO
+                        DurationInSeconds = totalDurationInSeconds,
+                        TotalDistanceMeter = targetDriving.CurrentSumMeters
 
                     };
                     await context.AddAsync(newOrder);

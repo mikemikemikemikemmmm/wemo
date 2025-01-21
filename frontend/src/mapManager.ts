@@ -39,7 +39,7 @@ export class MapManager {
         this.nowPositionCircle = L.circle(this.nowLatlng, { radius: 50, color: 'black', fillOpacity: 1, fillColor: 'black' }).addTo(this.map)
         this.lastGetNewCarsPolygon =
             convertBoundsToPolygon(this.map.getBounds())
-                .setStyle({ opacity: 0,fillOpacity:0 })
+                .setStyle({ opacity: 0, fillOpacity: 0 })
                 .addTo(this.map)
         this.initListenKeyboard()
         this.initListenMapEvent()
@@ -59,20 +59,21 @@ export class MapManager {
             errorHandler('')
             return
         }
+        const carmarkerData = this.carMarkerManager.createMarkerDataByCar(targetCar)
+        globalStore.dispatch(setTargetCarMarkerData(carmarkerData))
+        globalStore.dispatch(setUserStatus(userStatus))
         this.carMarkerManager.handleNewCarsMarker([targetCar])
         const targetCarmarker = this.carMarkerManager.findMarkerById(targetCar.id)
-        if(!targetCarmarker){
+        if (!targetCarmarker) {
             errorHandler('')
             return
         }
-        const carmarkerData = this.carMarkerManager.createMarkerData(targetCarmarker)
-        globalStore.dispatch(setTargetCarMarkerData(carmarkerData))
-        globalStore.dispatch(setUserStatus(userStatus))
         if (userStatus === 'driving') {
             this.setNowLatlng([targetCar.latitude, targetCar.longitude])
+            this.setViewToNowLatlng()
             this.carMarkerManager.setMarkerStyleWhenPickcar(targetCar.id)
             this.domManager.handleAddIntervalWhenPickupCar()
-        }else if(userStatus === 'reservedCar'){
+        } else if (userStatus === 'reservedCar') {
             targetCarmarker.setStyle(clickedMarkerStyle)
         }
     }

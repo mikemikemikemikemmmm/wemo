@@ -53,7 +53,7 @@ export class CarMarkerManager {
         const isSelf = targetCarMarkerData?.id === targetMarker._id
         if (!targetCarMarkerData) {
             targetMarker.setStyle(clickedMarkerStyle)
-            const data = this.createMarkerData(targetMarker)
+            const data = this.createMarkerDataByMarker(targetMarker)
             globalStore.dispatch(setTargetCarMarkerData(data))
             globalStore.dispatch(setUserStatus('lookingCar'))
         }
@@ -65,7 +65,7 @@ export class CarMarkerManager {
                 errorHandler("")//TODO
             }
             targetMarker.setStyle(clickedMarkerStyle)
-            const data = this.createMarkerData(targetMarker)
+            const data = this.createMarkerDataByMarker(targetMarker)
             globalStore.dispatch(setTargetCarMarkerData(data))
             globalStore.dispatch(setUserStatus('lookingCar'))
         }
@@ -79,11 +79,18 @@ export class CarMarkerManager {
         }
     }
     //redux only save json, can't save Carmarker
-    createMarkerData(marker: CarMarker): CarMarkerData {
+    createMarkerDataByMarker(marker: CarMarker): CarMarkerData {
         const latlng = marker.getLatLng()
         return {
             id: marker._id,
             latlng: [latlng.lat, latlng.lng]
+        }
+    }
+    //redux only save json, can't save Carmarker
+    createMarkerDataByCar(car: CarData): CarMarkerData {
+        return {
+            id: car.id,
+            latlng: [car.latitude, car.longitude]
         }
     }
     findMarkerById(id: number) {
