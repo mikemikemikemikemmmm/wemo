@@ -9,8 +9,7 @@ export class CarMarker extends L.CircleMarker {
     _id: number
     constructor(
         _id: number,
-        latlng: L.LatLngTuple,
-        options?: L.MarkerOptions) {
+        latlng: L.LatLngTuple) {
         super(latlng, originMarkerStyle)
         this._id = _id
     }
@@ -46,16 +45,15 @@ export class CarMarkerManager {
     }
     handleClickCarMarker(e: L.LeafletMouseEvent) {
         const state = globalStore.getState()
-        const userStatus = state.userStatus
+        const {userStatus,targetCarMarkerData} = state
         if (userStatus === 'driving' || userStatus === 'reservedCar') {
             return
         }
-        const self = e.target
-        const targetCarMarkerData = state.targetCarMarkerData
-        const isSelf = targetCarMarkerData?.id === self._id
+        const targetMarker = e.target
+        const isSelf = targetCarMarkerData?.id === targetMarker._id
         if (!targetCarMarkerData) {
-            self.setStyle(clickedMarkerStyle)
-            const data = this.createMarkerData(self)
+            targetMarker.setStyle(clickedMarkerStyle)
+            const data = this.createMarkerData(targetMarker)
             globalStore.dispatch(setTargetCarMarkerData(data))
             globalStore.dispatch(setUserStatus('lookingCar'))
         }
@@ -66,14 +64,14 @@ export class CarMarkerManager {
             } else {
                 errorHandler("")//TODO
             }
-            self.setStyle(clickedMarkerStyle)
-            const data = this.createMarkerData(self)
+            targetMarker.setStyle(clickedMarkerStyle)
+            const data = this.createMarkerData(targetMarker)
             globalStore.dispatch(setTargetCarMarkerData(data))
             globalStore.dispatch(setUserStatus('lookingCar'))
         }
         else if (isSelf) {
-            if (self) {
-                self.setStyle(originMarkerStyle)
+            if (targetMarker) {
+                targetMarker.setStyle(originMarkerStyle)
             } else {
                 errorHandler("")//TODO
             }
@@ -104,17 +102,17 @@ export class CarMarkerManager {
     trimList() {
         const currentBounds = this.map.getBounds()
         const targetCarMarkerData = globalStore.getState().targetCarMarkerData
-        let hasSetTargetMarkerIndex = false
+        let hasPushTargetMarkerIndex = false
         const newList = [] as typeof this.list
         for (let i = 0; i < this.list.length; i++) {
             //Ensure that the target marker will not be deleted.
             const target = this.list[i]
             if (
-                !hasSetTargetMarkerIndex &&
+                !hasPushTargetMarkerIndex &&
                 targetCarMarkerData &&
                 targetCarMarkerData.id === target._id
             ) {
-                hasSetTargetMarkerIndex = true
+                hasPushTargetMarkerIndex = true
                 newList.push(target)
                 continue
             }

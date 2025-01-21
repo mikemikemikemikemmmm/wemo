@@ -39,14 +39,14 @@ export class MapManager {
         this.nowPositionCircle = L.circle(this.nowLatlng, { radius: 50, color: 'black', fillOpacity: 1, fillColor: 'black' }).addTo(this.map)
         this.lastGetNewCarsPolygon =
             convertBoundsToPolygon(this.map.getBounds())
-                .setStyle({ opacity: 0 })
+                .setStyle({ opacity: 0,fillOpacity:0 })
                 .addTo(this.map)
         this.initListenKeyboard()
         this.initListenMapEvent()
         this.handleGetNewCars()
         this.handleBeforeStatus()
     }
-    async handleBeforeStatus() {//TODO
+    async handleBeforeStatus() {
         const result = await Api.get<BeforeStatus>('Car/before')
         if (!result.isSuccess) {
             return

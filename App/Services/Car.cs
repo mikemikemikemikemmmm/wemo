@@ -60,7 +60,7 @@ namespace App.Services
                         User = user,
                         CarId = targetCar.Id,
                         Car = targetCar,
-                        ExpiredAt = DateTime.UtcNow.AddMinutes(10) // 當前時間加10分鐘
+                        ExpiredAt = DateTimeOffset.UtcNow.AddSeconds(10) 
                     };
 
                     await context.AddAsync(newReservation);  // 添加預約
@@ -115,6 +115,7 @@ namespace App.Services
                 {
                     var targetReserve = await context.Reservations
                     .FirstOrDefaultAsync(r => r.UserId == user.Id && r.CarId == carId);
+                    Console.WriteLine(targetReserve);
                     if (targetReserve == null)
                     {
                         throw new Exception("找不到預約");
@@ -149,6 +150,10 @@ namespace App.Services
                 }
                 catch (Exception ex)
                 {
+                    if (ex.Message == "預約已過期")
+                    {
+                        return ex.Message;
+                    }
                     await transaction.RollbackAsync();  // 如果發生錯誤，回滾事務
                     return ex.Message;
                 }

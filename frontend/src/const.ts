@@ -21,6 +21,7 @@ export const MAP_CONTAINER_START = L.map(MAP_CONTAINER_DOM_ID, MAP_CONTAINER_CON
 
 //dom
 export const TOAST_ID = 'toast'
+export const LOADING_ID = 'loading'
 export const BUTTON_ID_MAP = {
     reserveCar: "reserveCar",
     cancelReserveCar: "cancelReserveCar",
